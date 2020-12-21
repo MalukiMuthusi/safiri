@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">safiri</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello, Welcome to Safiri app!</string>
+    <string name="rate_us">Rate Us</string>
+    <string name="help_support"><![CDATA[Help & support]]></string>
+    <string name="settings">Settings</string>
+</resources>
