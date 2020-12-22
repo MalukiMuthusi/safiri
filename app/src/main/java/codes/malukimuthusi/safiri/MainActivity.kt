@@ -9,7 +9,7 @@ import androidx.navigation.ui.setupWithNavController
 import codes.malukimuthusi.safiri.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var navHostFragment : NavHostFragment
+    private lateinit var navHostFragment: NavHostFragment
     private lateinit var navController: NavController
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
@@ -23,8 +23,7 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         navController = navHostFragment.navController
 
-        appBarConfiguration = AppBarConfiguration(navController.graph,binding.drawerLayout)
-        binding.collapsingToolbarLayout.setupWithNavController(binding.toolbar,navController,appBarConfiguration)
+        appBarConfiguration = AppBarConfiguration(navController.graph, binding.drawerLayout)
         binding.navView.setupWithNavController(navController)
     }
 }

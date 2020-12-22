@@ -9,5 +9,14 @@
         android:id="@+id/homeFragment"
         android:name="codes.malukimuthusi.safiri.HomeFragment"
         android:label="fragment_home"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home" >
+        <action
+            android:id="@+id/action_homeFragment_to_chooseLocationFragment"
+            app:destination="@id/chooseLocationFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/chooseLocationFragment"
+        android:name="codes.malukimuthusi.safiri.ChooseLocationFragment"
+        android:label="fragment_choose_location"
+        tools:layout="@layout/fragment_choose_location" />
 </navigation>
