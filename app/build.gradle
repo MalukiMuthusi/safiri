@@ -19,6 +19,8 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        resValue 'string', "MapboxAccessToken", MAPBOX_ACCESS_TOKEN
+
     }
 
     buildTypes {
@@ -57,4 +59,12 @@ dependencies {
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
     androidTestImplementation "androidx.navigation:navigation-testing:$nav_version"
 
+    // mapbox core library for permissions, location, etc
+    implementation 'com.mapbox.mapboxsdk:mapbox-android-core:3.1.0'
+
+    implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:9.5.0'
+    implementation 'com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v9:0.9.0'
+    implementation 'com.mapbox.mapboxsdk:mapbox-android-plugin-places-v9:0.12.0'
+
+    implementation 'com.squareup.okhttp3:okhttp:4.9.0'
 }
