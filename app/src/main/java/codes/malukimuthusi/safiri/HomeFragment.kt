@@ -61,6 +61,35 @@ class HomeFragment : Fragment() {
         binding.chooseLocation.setOnClickListener {
             chooseLocation()
         }
+
+        val listAdapter = FavoriteAdapter()
+
+        binding.favoritesList.adapter = listAdapter
+        val favoriteListDemo = listOf(
+            Favorite("Address 1"),
+            Favorite("Address 2"),
+            Favorite("Address 3"),
+            Favorite("Address 4"),
+            Favorite("Address 5"),
+            Favorite("Address 11"),
+            Favorite("Address 12"),
+            Favorite("Address 13"),
+            Favorite("Address 14"),
+            Favorite("Address 15"),
+            Favorite("Address 21"),
+            Favorite("Address 22"),
+            Favorite("Address 23"),
+            Favorite("Address 24"),
+            Favorite("Address 25"),
+            Favorite("Address 211"),
+            Favorite("Address 212"),
+            Favorite("Address 213"),
+            Favorite("Address 214"),
+            Favorite("Address 215")
+        )
+
+        listAdapter.submitList(favoriteListDemo)
+
     }
 
 
