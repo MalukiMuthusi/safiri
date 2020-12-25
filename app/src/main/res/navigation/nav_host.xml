@@ -8,8 +8,8 @@
     <fragment
         android:id="@+id/homeFragment"
         android:name="codes.malukimuthusi.safiri.HomeFragment"
-        android:label="fragment_home"
-        tools:layout="@layout/fragment_home" >
+        android:label=""
+        tools:layout="@layout/fragment_home">
         <action
             android:id="@+id/action_homeFragment_to_chooseLocationFragment"
             app:destination="@id/chooseLocationFragment" />

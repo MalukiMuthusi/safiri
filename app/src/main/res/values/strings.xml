@@ -9,4 +9,10 @@
     <string name="where_do_you_want_to_go">Where do you want to go?</string>
     <string name="choose_location">Choose location</string>
     <string name="pick_location">Pick Location</string>
+    <string name="favorites">Favorites</string>
+    <string name="add">Add</string>
+    <string name="home">Home</string>
+    <string name="tap_to_set">Tap to set</string>
+    <string name="icon_of_the_place">Icon of the place</string>
+    <string name="search">Search</string>
 </resources>
