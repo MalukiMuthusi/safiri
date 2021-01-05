@@ -37,7 +37,6 @@ class HomeFragment : Fragment() {
     private var param1: String? = null
     private var param2: String? = null
     private lateinit var binding: FragmentHomeBinding
-    private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var navController: NavController
     private lateinit var navHostFragment: NavHostFragment
 
@@ -83,6 +82,14 @@ class HomeFragment : Fragment() {
             drawer
         )
 
+        binding.addButton.setOnClickListener{
+            addToFavourite()
+        }
+
+    }
+
+    private fun addToFavourite(){
+      LayoutInflater.from(binding.favoriteHeaderLayout.context).inflate(R.layout.favourite_list_layout, binding.favoriteHeaderLayout,true)
     }
 
 
