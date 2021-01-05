@@ -1,6 +1,7 @@
 package codes.malukimuthusi.safiri
 
 import android.app.Activity
+import android.app.Application
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,11 +10,14 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import codes.malukimuthusi.safiri.databinding.FragmentHomeBinding
+import com.google.android.material.snackbar.Snackbar
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.geometry.LatLng
@@ -21,6 +25,9 @@ import com.mapbox.mapboxsdk.plugins.places.autocomplete.PlaceAutocomplete
 import com.mapbox.mapboxsdk.plugins.places.autocomplete.model.PlaceOptions
 import com.mapbox.mapboxsdk.plugins.places.picker.PlacePicker
 import com.mapbox.mapboxsdk.plugins.places.picker.model.PlacePickerOptions
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -39,6 +46,12 @@ class HomeFragment : Fragment() {
     private lateinit var binding: FragmentHomeBinding
     private lateinit var navController: NavController
     private lateinit var navHostFragment: NavHostFragment
+    private val viewModel: HomeViewModel by viewModels {
+        ViewModelProvider.AndroidViewModelFactory(
+            requireActivity().application
+        )
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +59,7 @@ class HomeFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
+
     }
 
     override fun onCreateView(
@@ -82,14 +96,49 @@ class HomeFragment : Fragment() {
             drawer
         )
 
-        binding.addButton.setOnClickListener{
+        binding.addButton.setOnClickListener {
             addToFavourite()
+        }
+
+        // add the favourite list to the ui
+
+        // get the added class
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO){
+                viewModel.db.addressDao().insertAddress(viewModel.jonathanNgeno)
+                val allAddresses = viewModel.db.addressDao().getAll()
+                if (allAddresses.isNotEmpty()) {
+                    // show a snack bar
+                    Snackbar.make(
+                        binding.favoriteHeaderLayout,
+                        allAddresses[0].name,
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+            }
+
         }
 
     }
 
-    private fun addToFavourite(){
-      LayoutInflater.from(binding.favoriteHeaderLayout.context).inflate(R.layout.favourite_list_layout, binding.favoriteHeaderLayout,true)
+    private fun addToFavourite() {
+        LayoutInflater.from(binding.favoriteHeaderLayout.context)
+            .inflate(R.layout.favourite_list_layout, binding.favoriteHeaderLayout, true)
+        // get the added class
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO){
+                val allAddresses = viewModel.db.addressDao().getAll()
+                if (allAddresses.isNotEmpty()) {
+                    // show a snack bar
+                    Snackbar.make(
+                        binding.favoriteHeaderLayout,
+                        allAddresses[0].LongName,
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+            }
+
+        }
     }
 
 
@@ -168,5 +217,8 @@ class HomeFragment : Fragment() {
         const val REQUEST_CODE_AUTOCOMPLETE = 5678
         const val REQUEST_CODE_PICK_LOCATION = 8793
     }
+
+    private class HomeViewModelFactory(app: Application) :
+        ViewModelProvider.AndroidViewModelFactory(app)
 
 }
