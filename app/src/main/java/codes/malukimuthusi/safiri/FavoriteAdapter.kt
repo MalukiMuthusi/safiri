@@ -2,6 +2,7 @@ package codes.malukimuthusi.safiri
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -9,8 +10,15 @@ import codes.malukimuthusi.safiri.databinding.FavouriteHeaderBinding
 import codes.malukimuthusi.safiri.databinding.FavouriteListLayoutBinding
 import codes.malukimuthusi.safiri.databinding.LocationSelectorBinding
 import codes.malukimuthusi.safiri.models.Address
+import com.mapbox.mapboxsdk.camera.CameraPosition
+import com.mapbox.mapboxsdk.geometry.LatLng
+import com.mapbox.mapboxsdk.plugins.places.autocomplete.PlaceAutocomplete
+import com.mapbox.mapboxsdk.plugins.places.autocomplete.model.PlaceOptions
+import com.mapbox.mapboxsdk.plugins.places.picker.PlacePicker
+import com.mapbox.mapboxsdk.plugins.places.picker.model.PlacePickerOptions
 
-class FavoriteAdapter : ListAdapter<Address, RecyclerView.ViewHolder>(FavoriteDIFF) {
+class FavoriteAdapter(private val mainActivity: FragmentActivity) :
+    ListAdapter<Address, RecyclerView.ViewHolder>(FavoriteDIFF) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
             1 -> LocationSelectorViewHolder.init(parent)
@@ -23,10 +31,12 @@ class FavoriteAdapter : ListAdapter<Address, RecyclerView.ViewHolder>(FavoriteDI
 
         when (getItemViewType(position)) {
             1 -> {
-                return
+                holder as LocationSelectorViewHolder
+                holder.bind(mainActivity)
             }
             2 -> {
-                return
+                holder as FavoriteHeaderViewHolder
+                holder.bind(mainActivity)
             }
             else -> {
                 holder as FavoriteViewHolder
@@ -75,8 +85,29 @@ class FavoriteViewHolder(private val view: FavouriteListLayoutBinding) :
     }
 }
 
-class FavoriteHeaderViewHolder(view: FavouriteHeaderBinding) :
+class FavoriteHeaderViewHolder(private val view: FavouriteHeaderBinding) :
     RecyclerView.ViewHolder(view.root) {
+
+
+    fun bind(mainActivity: FragmentActivity) {
+
+        view.addButton.setOnClickListener {
+            val placePickerOptions = PlacePickerOptions.builder()
+                .statingCameraPosition(
+                    CameraPosition.Builder()
+                        .target(LatLng(-1.2921, 36.8219))
+                        .zoom(16.0)
+                        .build()
+                )
+                .build()
+            val intent = PlacePicker.IntentBuilder()
+                .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
+                .placeOptions(placePickerOptions)
+                .build(mainActivity)
+
+
+        }
+    }
 
     companion object {
         fun init(parent: ViewGroup): FavoriteHeaderViewHolder {
@@ -91,8 +122,39 @@ class FavoriteHeaderViewHolder(view: FavouriteHeaderBinding) :
     }
 }
 
-class LocationSelectorViewHolder(view: LocationSelectorBinding) :
+
+class LocationSelectorViewHolder(private val view: LocationSelectorBinding) :
     RecyclerView.ViewHolder(view.root) {
+
+    fun bind(mainActivity: FragmentActivity) {
+        view.chooseLocation.setOnClickListener {
+            val placeOptions = PlaceOptions.builder()
+                .country("KE")
+                .hint(mainActivity.getString(R.string.where_do_you_want_to_go))
+                .build(PlaceOptions.MODE_CARDS)
+            val intent = PlaceAutocomplete.IntentBuilder()
+                .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
+                .placeOptions(placeOptions)
+                .build(mainActivity)
+            mainActivity.startActivityForResult(intent, HomeFragment.REQUEST_CODE_AUTOCOMPLETE)
+        }
+
+        view.pickLocation.setOnClickListener {
+            val placePickerOptions = PlacePickerOptions.builder()
+                .statingCameraPosition(
+                    CameraPosition.Builder()
+                        .target(LatLng(-1.2921, 36.8219))
+                        .zoom(16.0)
+                        .build()
+                )
+                .build()
+            val intent = PlacePicker.IntentBuilder()
+                .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
+                .placeOptions(placePickerOptions)
+                .build(mainActivity)
+            mainActivity.startActivityForResult(intent, HomeFragment.REQUEST_CODE_PICK_LOCATION)
+        }
+    }
 
     companion object {
         fun init(parent: ViewGroup): LocationSelectorViewHolder {
@@ -106,4 +168,6 @@ class LocationSelectorViewHolder(view: LocationSelectorBinding) :
         }
     }
 }
+
+
 

@@ -10,7 +10,7 @@ interface AddressDao {
     fun getAllAddresses(): LiveData<List<Address>>
 
     @Insert()
-    fun insertAddress(address: Address)
+    suspend fun insertAddress(address: Address)
 }
 
 @Database(entities = arrayOf(Address::class), version = 100, exportSchema = false)

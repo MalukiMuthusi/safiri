@@ -2,11 +2,15 @@ package codes.malukimuthusi.safiri
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -51,6 +55,7 @@ class HomeFragment : Fragment() {
             requireActivity().application
         )
     }
+    lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,7 +94,8 @@ class HomeFragment : Fragment() {
             drawer
         )
 
-        favouriteListAdapter = FavoriteAdapter()
+        val act = requireActivity()
+        favouriteListAdapter = FavoriteAdapter(act)
         binding.recyclerviewLayoutId.adapter = favouriteListAdapter
 
 
@@ -101,6 +107,32 @@ class HomeFragment : Fragment() {
             changeList.add(0, emptyAddres)
             favouriteListAdapter.submitList(changeList)
         })
+
+        requestPermissionLauncher =
+            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+                if (it) {
+
+                } else {
+
+                }
+
+            }
+
+        when {
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.READ_PHONE_STATE
+            ) != PackageManager.PERMISSION_GRANTED -> {
+
+            }
+            shouldShowRequestPermissionRationale(android.Manifest.permission.READ_PHONE_STATE) -> {
+
+            }
+            else -> {
+                requestPermissionLauncher.launch(android.Manifest.permission.READ_PHONE_STATE)
+            }
+        }
+
 
     }
 
@@ -159,6 +191,17 @@ class HomeFragment : Fragment() {
             REQUEST_CODE_PICK_LOCATION -> {
                 if (resultCode == Activity.RESULT_OK) {
                     val feature = PlaceAutocomplete.getPlace(data)
+                    val newAddress = Address(
+                        feature.address() ?: "new place",
+                        feature.center()?.longitude()?.toDouble() ?: 0.0,
+                        feature.center()?.latitude()?.toDouble() ?: 0.0,
+                        feature.placeName() ?: "default name",
+                        feature.id() ?: "default shortname"
+                    )
+
+                    lifecycleScope.launch {
+                        viewModel.addItem(newAddress)
+                    }
                 }
 
                 if (resultCode != Activity.RESULT_OK) {

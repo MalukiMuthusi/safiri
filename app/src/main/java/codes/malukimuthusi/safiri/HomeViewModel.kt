@@ -3,12 +3,10 @@ package codes.malukimuthusi.safiri
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import codes.malukimuthusi.safiri.models.Address
 import codes.malukimuthusi.safiri.repository.AppDatabase
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
@@ -18,12 +16,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         Room.databaseBuilder(app.applicationContext, AppDatabase::class.java, "malukimuthusiDB")
             .build()
 
-    fun addItem() {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                db.addressDao().insertAddress(jonathanNgeno)
-            }
+    suspend fun addItem(newPlace: Address) {
+
+        withContext(Dispatchers.IO) {
+            db.addressDao().insertAddress(newPlace)
         }
+
     }
 
     val jonathanNgeno = Address(
