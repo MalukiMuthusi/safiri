@@ -100,30 +100,18 @@ class HomeFragment : Fragment() {
             addToFavourite()
         }
 
-        // add the favourite list to the ui
-
-        // get the added class
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                val allAddresses = viewModel.db.addressDao().getAll()
-                withContext(Dispatchers.Main){
-                    if (allAddresses.isNotEmpty()) {
-                        allAddresses.forEach {
-                            val inflater2 = LayoutInflater.from(binding.root.context)
-                            val binding2 = FavouriteListLayoutBinding.inflate(
-                                inflater2,
-                                binding.favoriteHeaderLayout,
-                                true
-                            )
-                            binding2.placeName.text = it.shortName
-                            binding2.address.text = it.LongName
-                        }
-                    }
-                }
-
+        viewModel.allAddresses.observe(viewLifecycleOwner, {
+            val inflater2 = LayoutInflater.from(binding.root.context)
+            val binding2 = FavouriteListLayoutBinding.inflate(
+                inflater2,
+                binding.favoriteHeaderLayout,
+                true
+            )
+            it.forEach {
+                binding2.placeName.text = it.shortName
+                binding2.address.text = it.LongName
             }
-
-        }
+        })
 
     }
 
