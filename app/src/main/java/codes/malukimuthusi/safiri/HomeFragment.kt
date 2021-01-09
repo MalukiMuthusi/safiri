@@ -1,7 +1,6 @@
 package codes.malukimuthusi.safiri
 
 import android.app.Activity
-import android.app.Application
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -16,8 +15,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
-import codes.malukimuthusi.safiri.databinding.FavouriteListLayoutBinding
 import codes.malukimuthusi.safiri.databinding.FragmentHomeBinding
+import codes.malukimuthusi.safiri.models.Address
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.geometry.LatLng
@@ -46,6 +45,7 @@ class HomeFragment : Fragment() {
     private lateinit var binding: FragmentHomeBinding
     private lateinit var navController: NavController
     private lateinit var navHostFragment: NavHostFragment
+    private lateinit var favouriteListAdapter: FavoriteAdapter
     private val viewModel: HomeViewModel by viewModels {
         ViewModelProvider.AndroidViewModelFactory(
             requireActivity().application
@@ -69,20 +69,13 @@ class HomeFragment : Fragment() {
         // Inflate the layout for this fragment
         binding = FragmentHomeBinding.inflate(inflater, container, false)
         Mapbox.getInstance(requireContext(), getString(R.string.MapboxAccessToken))
+
+
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        binding.pickLocation.setOnClickListener {
-            pickLocation()
-        }
-
-        binding.chooseLocation.setOnClickListener {
-            chooseLocation()
-        }
-
         binding.topAppBar.setNavigationOnClickListener {
 
         }
@@ -96,21 +89,17 @@ class HomeFragment : Fragment() {
             drawer
         )
 
-        binding.addButton.setOnClickListener {
-            addToFavourite()
-        }
+        favouriteListAdapter = FavoriteAdapter()
+        binding.recyclerviewLayoutId.adapter = favouriteListAdapter
+
 
         viewModel.allAddresses.observe(viewLifecycleOwner, {
-            val inflater2 = LayoutInflater.from(binding.root.context)
-            val binding2 = FavouriteListLayoutBinding.inflate(
-                inflater2,
-                binding.favoriteHeaderLayout,
-                true
-            )
-            it.forEach {
-                binding2.placeName.text = it.shortName
-                binding2.address.text = it.LongName
-            }
+            val emptyAddres = Address("", 0.0, 0.0, "", "")
+            val changeList = mutableListOf<Address>()
+            changeList.addAll(it)
+            changeList.add(0, emptyAddres)
+            changeList.add(0, emptyAddres)
+            favouriteListAdapter.submitList(changeList)
         })
 
     }
@@ -201,8 +190,5 @@ class HomeFragment : Fragment() {
         const val REQUEST_CODE_AUTOCOMPLETE = 5678
         const val REQUEST_CODE_PICK_LOCATION = 8793
     }
-
-    private class HomeViewModelFactory(app: Application) :
-        ViewModelProvider.AndroidViewModelFactory(app)
 
 }

@@ -5,36 +5,60 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import codes.malukimuthusi.safiri.databinding.FavouriteHeaderBinding
 import codes.malukimuthusi.safiri.databinding.FavouriteListLayoutBinding
+import codes.malukimuthusi.safiri.databinding.LocationSelectorBinding
+import codes.malukimuthusi.safiri.models.Address
 
-class FavoriteAdapter : ListAdapter<Favorite, FavoriteViewHolder>(FavoriteDIFF) {
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FavoriteViewHolder {
-        return FavoriteViewHolder.init(parent)
+class FavoriteAdapter : ListAdapter<Address, RecyclerView.ViewHolder>(FavoriteDIFF) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return when (viewType) {
+            1 -> LocationSelectorViewHolder.init(parent)
+            2 -> FavoriteHeaderViewHolder.init(parent)
+            else -> FavoriteViewHolder.init(parent)
+        }
     }
 
-    override fun onBindViewHolder(holder: FavoriteViewHolder, position: Int) {
-        holder.bind(getItem(position))
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+
+        when (getItemViewType(position)) {
+            1 -> {
+                return
+            }
+            2 -> {
+                return
+            }
+            else -> {
+                holder as FavoriteViewHolder
+                holder.bind(getItem(position))
+            }
+        }
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return when (position) {
+            0 -> 1
+            1 -> 2
+            else -> super.getItemViewType(position)
+        }
+
     }
 }
 
-data class Favorite(
-    var address: String = ""
-)
-
-object FavoriteDIFF : DiffUtil.ItemCallback<Favorite>() {
-    override fun areItemsTheSame(oldItem: Favorite, newItem: Favorite): Boolean {
+object FavoriteDIFF : DiffUtil.ItemCallback<Address>() {
+    override fun areItemsTheSame(oldItem: Address, newItem: Address): Boolean {
         return oldItem === newItem
     }
 
-    override fun areContentsTheSame(oldItem: Favorite, newItem: Favorite): Boolean {
+    override fun areContentsTheSame(oldItem: Address, newItem: Address): Boolean {
         return oldItem == newItem
     }
 }
 
 class FavoriteViewHolder(private val view: FavouriteListLayoutBinding) :
     RecyclerView.ViewHolder(view.root) {
-    fun bind(favoriteItem: Favorite) {
-        view.address.text = favoriteItem.address
+    fun bind(favoriteItem: Address) {
+        view.address.text = favoriteItem.LongName
     }
 
     companion object {
@@ -50,3 +74,36 @@ class FavoriteViewHolder(private val view: FavouriteListLayoutBinding) :
         }
     }
 }
+
+class FavoriteHeaderViewHolder(view: FavouriteHeaderBinding) :
+    RecyclerView.ViewHolder(view.root) {
+
+    companion object {
+        fun init(parent: ViewGroup): FavoriteHeaderViewHolder {
+            val binding =
+                FavouriteHeaderBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+            return FavoriteHeaderViewHolder(binding)
+        }
+    }
+}
+
+class LocationSelectorViewHolder(view: LocationSelectorBinding) :
+    RecyclerView.ViewHolder(view.root) {
+
+    companion object {
+        fun init(parent: ViewGroup): LocationSelectorViewHolder {
+            val binding =
+                LocationSelectorBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+            return LocationSelectorViewHolder(binding)
+        }
+    }
+}
+
