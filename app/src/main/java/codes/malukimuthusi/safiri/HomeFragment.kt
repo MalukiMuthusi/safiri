@@ -16,8 +16,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
+import codes.malukimuthusi.safiri.databinding.FavouriteListLayoutBinding
 import codes.malukimuthusi.safiri.databinding.FragmentHomeBinding
-import com.google.android.material.snackbar.Snackbar
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.geometry.LatLng
@@ -104,17 +104,23 @@ class HomeFragment : Fragment() {
 
         // get the added class
         lifecycleScope.launch {
-            withContext(Dispatchers.IO){
-                viewModel.db.addressDao().insertAddress(viewModel.jonathanNgeno)
+            withContext(Dispatchers.IO) {
                 val allAddresses = viewModel.db.addressDao().getAll()
-                if (allAddresses.isNotEmpty()) {
-                    // show a snack bar
-                    Snackbar.make(
-                        binding.favoriteHeaderLayout,
-                        allAddresses[0].name,
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                withContext(Dispatchers.Main){
+                    if (allAddresses.isNotEmpty()) {
+                        allAddresses.forEach {
+                            val inflater2 = LayoutInflater.from(binding.root.context)
+                            val binding2 = FavouriteListLayoutBinding.inflate(
+                                inflater2,
+                                binding.favoriteHeaderLayout,
+                                true
+                            )
+                            binding2.placeName.text = it.shortName
+                            binding2.address.text = it.LongName
+                        }
+                    }
                 }
+
             }
 
         }
@@ -122,20 +128,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun addToFavourite() {
-        LayoutInflater.from(binding.favoriteHeaderLayout.context)
-            .inflate(R.layout.favourite_list_layout, binding.favoriteHeaderLayout, true)
         // get the added class
         lifecycleScope.launch {
-            withContext(Dispatchers.IO){
-                val allAddresses = viewModel.db.addressDao().getAll()
-                if (allAddresses.isNotEmpty()) {
-                    // show a snack bar
-                    Snackbar.make(
-                        binding.favoriteHeaderLayout,
-                        allAddresses[0].LongName,
-                        Snackbar.LENGTH_LONG
-                    ).show()
-                }
+            withContext(Dispatchers.IO) {
+                viewModel.db.addressDao().insertAddress(viewModel.jonathanNgeno)
             }
 
         }
