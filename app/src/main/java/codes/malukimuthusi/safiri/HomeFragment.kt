@@ -2,7 +2,6 @@ package codes.malukimuthusi.safiri
 
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,7 +9,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -21,6 +20,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import codes.malukimuthusi.safiri.databinding.FragmentHomeBinding
 import codes.malukimuthusi.safiri.models.Address
+import com.google.android.material.snackbar.Snackbar
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.geometry.LatLng
@@ -65,6 +65,36 @@ class HomeFragment : Fragment() {
             param2 = it.getString(ARG_PARAM2)
         }
 
+        val placePickerOptions = PlacePickerOptions.builder()
+            .statingCameraPosition(
+                CameraPosition.Builder()
+                    .target(LatLng(-1.2921, 36.8219))
+                    .zoom(16.0)
+                    .build()
+            )
+            .build()
+        val intent = PlacePicker.IntentBuilder()
+            .accessToken(getString(R.string.MapboxAccessToken))
+            .placeOptions(placePickerOptions)
+            .build(requireActivity())
+        requestPermissionLauncher =
+            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+                if (it) {
+                    ActivityCompat.startActivityForResult(
+                        requireActivity(),
+                        intent,
+                        REQUEST_CODE_AUTOCOMPLETE, null
+                    )
+                } else {
+                    Snackbar.make(
+                        binding.root,
+                        "please provide required permissions",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+
+            }
+
     }
 
     override fun onCreateView(
@@ -95,7 +125,7 @@ class HomeFragment : Fragment() {
         )
 
         val act = requireActivity()
-        favouriteListAdapter = FavoriteAdapter(act)
+        favouriteListAdapter = FavoriteAdapter(this)
         binding.recyclerviewLayoutId.adapter = favouriteListAdapter
 
 
@@ -107,32 +137,6 @@ class HomeFragment : Fragment() {
             changeList.add(0, emptyAddres)
             favouriteListAdapter.submitList(changeList)
         })
-
-        requestPermissionLauncher =
-            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                if (it) {
-
-                } else {
-
-                }
-
-            }
-
-        when {
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                android.Manifest.permission.READ_PHONE_STATE
-            ) != PackageManager.PERMISSION_GRANTED -> {
-
-            }
-            shouldShowRequestPermissionRationale(android.Manifest.permission.READ_PHONE_STATE) -> {
-
-            }
-            else -> {
-                requestPermissionLauncher.launch(android.Manifest.permission.READ_PHONE_STATE)
-            }
-        }
-
 
     }
 
@@ -230,8 +234,8 @@ class HomeFragment : Fragment() {
                 }
             }
 
-        const val REQUEST_CODE_AUTOCOMPLETE = 5678
-        const val REQUEST_CODE_PICK_LOCATION = 8793
+        const val REQUEST_CODE_AUTOCOMPLETE = 8267
+        const val REQUEST_CODE_PICK_LOCATION = 8654
     }
 
 }

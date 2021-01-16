@@ -1,8 +1,11 @@
 package codes.malukimuthusi.safiri
 
+import android.content.pm.PackageManager
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.fragment.app.FragmentActivity
+import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
+import androidx.core.app.ActivityCompat.startActivityForResult
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -10,6 +13,7 @@ import codes.malukimuthusi.safiri.databinding.FavouriteHeaderBinding
 import codes.malukimuthusi.safiri.databinding.FavouriteListLayoutBinding
 import codes.malukimuthusi.safiri.databinding.LocationSelectorBinding
 import codes.malukimuthusi.safiri.models.Address
+import com.google.android.material.snackbar.Snackbar
 import com.mapbox.mapboxsdk.camera.CameraPosition
 import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.mapboxsdk.plugins.places.autocomplete.PlaceAutocomplete
@@ -17,7 +21,7 @@ import com.mapbox.mapboxsdk.plugins.places.autocomplete.model.PlaceOptions
 import com.mapbox.mapboxsdk.plugins.places.picker.PlacePicker
 import com.mapbox.mapboxsdk.plugins.places.picker.model.PlacePickerOptions
 
-class FavoriteAdapter(private val mainActivity: FragmentActivity) :
+class FavoriteAdapter(private val mainActivity: HomeFragment) :
     ListAdapter<Address, RecyclerView.ViewHolder>(FavoriteDIFF) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
@@ -31,14 +35,17 @@ class FavoriteAdapter(private val mainActivity: FragmentActivity) :
 
         when (getItemViewType(position)) {
             1 -> {
+                // select location layout
                 holder as LocationSelectorViewHolder
                 holder.bind(mainActivity)
             }
             2 -> {
+                // favourite list header
                 holder as FavoriteHeaderViewHolder
                 holder.bind(mainActivity)
             }
             else -> {
+                // favourite list
                 holder as FavoriteViewHolder
                 holder.bind(getItem(position))
             }
@@ -89,22 +96,47 @@ class FavoriteHeaderViewHolder(private val view: FavouriteHeaderBinding) :
     RecyclerView.ViewHolder(view.root) {
 
 
-    fun bind(mainActivity: FragmentActivity) {
+    fun bind(mainActivity: HomeFragment) {
+        val placePickerOptions = PlacePickerOptions.builder()
+            .statingCameraPosition(
+                CameraPosition.Builder()
+                    .target(LatLng(-1.2921, 36.8219))
+                    .zoom(16.0)
+                    .build()
+            )
+            .build()
+        val intent = PlacePicker.IntentBuilder()
+            .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
+            .placeOptions(placePickerOptions)
+            .build(mainActivity.requireActivity())
 
         view.addButton.setOnClickListener {
-            val placePickerOptions = PlacePickerOptions.builder()
-                .statingCameraPosition(
-                    CameraPosition.Builder()
-                        .target(LatLng(-1.2921, 36.8219))
-                        .zoom(16.0)
-                        .build()
-                )
-                .build()
-            val intent = PlacePicker.IntentBuilder()
-                .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
-                .placeOptions(placePickerOptions)
-                .build(mainActivity)
 
+            when {
+                ContextCompat.checkSelfPermission(
+                    mainActivity.requireActivity(),
+                    android.Manifest.permission.READ_PHONE_STATE
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    startActivityForResult(
+                        mainActivity.requireActivity(),
+                        intent,
+                        HomeFragment.REQUEST_CODE_AUTOCOMPLETE, null
+                    )
+                }
+                shouldShowRequestPermissionRationale(
+                    mainActivity.requireActivity(),
+                    android.Manifest.permission.READ_PHONE_STATE
+                ) -> {
+                    Snackbar.make(
+                        view.root,
+                        "please provide required permissions",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+                else -> {
+                    mainActivity.requestPermissionLauncher.launch(android.Manifest.permission.READ_PHONE_STATE)
+                }
+            }
 
         }
     }
@@ -126,7 +158,7 @@ class FavoriteHeaderViewHolder(private val view: FavouriteHeaderBinding) :
 class LocationSelectorViewHolder(private val view: LocationSelectorBinding) :
     RecyclerView.ViewHolder(view.root) {
 
-    fun bind(mainActivity: FragmentActivity) {
+    fun bind(mainActivity: HomeFragment) {
         view.chooseLocation.setOnClickListener {
             val placeOptions = PlaceOptions.builder()
                 .country("KE")
@@ -135,7 +167,7 @@ class LocationSelectorViewHolder(private val view: LocationSelectorBinding) :
             val intent = PlaceAutocomplete.IntentBuilder()
                 .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
                 .placeOptions(placeOptions)
-                .build(mainActivity)
+                .build(mainActivity.requireActivity())
             mainActivity.startActivityForResult(intent, HomeFragment.REQUEST_CODE_AUTOCOMPLETE)
         }
 
@@ -151,7 +183,7 @@ class LocationSelectorViewHolder(private val view: LocationSelectorBinding) :
             val intent = PlacePicker.IntentBuilder()
                 .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
                 .placeOptions(placePickerOptions)
-                .build(mainActivity)
+                .build(mainActivity.requireActivity())
             mainActivity.startActivityForResult(intent, HomeFragment.REQUEST_CODE_PICK_LOCATION)
         }
     }
