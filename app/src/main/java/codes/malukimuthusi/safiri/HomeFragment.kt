@@ -1,13 +1,15 @@
 package codes.malukimuthusi.safiri
 
 import android.app.Activity
-import android.app.Application
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -17,6 +19,7 @@ import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import codes.malukimuthusi.safiri.databinding.FragmentHomeBinding
+import codes.malukimuthusi.safiri.models.Address
 import com.google.android.material.snackbar.Snackbar
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.camera.CameraPosition
@@ -46,11 +49,13 @@ class HomeFragment : Fragment() {
     private lateinit var binding: FragmentHomeBinding
     private lateinit var navController: NavController
     private lateinit var navHostFragment: NavHostFragment
+    private lateinit var favouriteListAdapter: FavoriteAdapter
     private val viewModel: HomeViewModel by viewModels {
         ViewModelProvider.AndroidViewModelFactory(
             requireActivity().application
         )
     }
+    lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,6 +64,36 @@ class HomeFragment : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
+
+        val placePickerOptions = PlacePickerOptions.builder()
+            .statingCameraPosition(
+                CameraPosition.Builder()
+                    .target(LatLng(-1.2921, 36.8219))
+                    .zoom(16.0)
+                    .build()
+            )
+            .build()
+        val intent = PlacePicker.IntentBuilder()
+            .accessToken(getString(R.string.MapboxAccessToken))
+            .placeOptions(placePickerOptions)
+            .build(requireActivity())
+        requestPermissionLauncher =
+            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+                if (it) {
+                    ActivityCompat.startActivityForResult(
+                        requireActivity(),
+                        intent,
+                        REQUEST_CODE_AUTOCOMPLETE, null
+                    )
+                } else {
+                    Snackbar.make(
+                        binding.root,
+                        "please provide required permissions",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+
+            }
 
     }
 
@@ -69,20 +104,13 @@ class HomeFragment : Fragment() {
         // Inflate the layout for this fragment
         binding = FragmentHomeBinding.inflate(inflater, container, false)
         Mapbox.getInstance(requireContext(), getString(R.string.MapboxAccessToken))
+
+
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        binding.pickLocation.setOnClickListener {
-            pickLocation()
-        }
-
-        binding.chooseLocation.setOnClickListener {
-            chooseLocation()
-        }
-
         binding.topAppBar.setNavigationOnClickListener {
 
         }
@@ -96,46 +124,27 @@ class HomeFragment : Fragment() {
             drawer
         )
 
-        binding.addButton.setOnClickListener {
-            addToFavourite()
-        }
+        val act = requireActivity()
+        favouriteListAdapter = FavoriteAdapter(this)
+        binding.recyclerviewLayoutId.adapter = favouriteListAdapter
 
-        // add the favourite list to the ui
 
-        // get the added class
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO){
-                viewModel.db.addressDao().insertAddress(viewModel.jonathanNgeno)
-                val allAddresses = viewModel.db.addressDao().getAll()
-                if (allAddresses.isNotEmpty()) {
-                    // show a snack bar
-                    Snackbar.make(
-                        binding.favoriteHeaderLayout,
-                        allAddresses[0].name,
-                        Snackbar.LENGTH_LONG
-                    ).show()
-                }
-            }
-
-        }
+        viewModel.allAddresses.observe(viewLifecycleOwner, {
+            val emptyAddres = Address("", 0.0, 0.0, "", "")
+            val changeList = mutableListOf<Address>()
+            changeList.addAll(it)
+            changeList.add(0, emptyAddres)
+            changeList.add(0, emptyAddres)
+            favouriteListAdapter.submitList(changeList)
+        })
 
     }
 
     private fun addToFavourite() {
-        LayoutInflater.from(binding.favoriteHeaderLayout.context)
-            .inflate(R.layout.favourite_list_layout, binding.favoriteHeaderLayout, true)
         // get the added class
         lifecycleScope.launch {
-            withContext(Dispatchers.IO){
-                val allAddresses = viewModel.db.addressDao().getAll()
-                if (allAddresses.isNotEmpty()) {
-                    // show a snack bar
-                    Snackbar.make(
-                        binding.favoriteHeaderLayout,
-                        allAddresses[0].LongName,
-                        Snackbar.LENGTH_LONG
-                    ).show()
-                }
+            withContext(Dispatchers.IO) {
+                viewModel.db.addressDao().insertAddress(viewModel.jonathanNgeno)
             }
 
         }
@@ -186,6 +195,17 @@ class HomeFragment : Fragment() {
             REQUEST_CODE_PICK_LOCATION -> {
                 if (resultCode == Activity.RESULT_OK) {
                     val feature = PlaceAutocomplete.getPlace(data)
+                    val newAddress = Address(
+                        feature.address() ?: "new place",
+                        feature.center()?.longitude()?.toDouble() ?: 0.0,
+                        feature.center()?.latitude()?.toDouble() ?: 0.0,
+                        feature.placeName() ?: "default name",
+                        feature.id() ?: "default shortname"
+                    )
+
+                    lifecycleScope.launch {
+                        viewModel.addItem(newAddress)
+                    }
                 }
 
                 if (resultCode != Activity.RESULT_OK) {
@@ -214,11 +234,8 @@ class HomeFragment : Fragment() {
                 }
             }
 
-        const val REQUEST_CODE_AUTOCOMPLETE = 5678
-        const val REQUEST_CODE_PICK_LOCATION = 8793
+        const val REQUEST_CODE_AUTOCOMPLETE = 8267
+        const val REQUEST_CODE_PICK_LOCATION = 8654
     }
-
-    private class HomeViewModelFactory(app: Application) :
-        ViewModelProvider.AndroidViewModelFactory(app)
 
 }
