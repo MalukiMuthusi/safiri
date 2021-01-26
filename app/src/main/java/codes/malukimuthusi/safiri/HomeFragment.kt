@@ -1,6 +1,7 @@
 package codes.malukimuthusi.safiri
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -53,9 +54,43 @@ class HomeFragment : Fragment() {
             requireActivity().application
         )
     }
-    lateinit var requestPermisLctPickLauncher: ActivityResultLauncher<String>
+    lateinit var requestPermissionLocationPickLauncher: ActivityResultLauncher<String>
 
-    lateinit var requestPermisLctSelectLauncher: ActivityResultLauncher<String>
+    lateinit var requestPermissionLocationSelectLauncher: ActivityResultLauncher<String>
+    val requestPermissionPickHomeLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { permissionStatus ->
+            if (permissionStatus) {
+                val placeSelectOptions = PlaceOptions.builder()
+                    .country("KE")
+                    .hint(getString(R.string.where_do_you_want_to_go))
+                    .build(PlaceOptions.MODE_CARDS)
+                val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
+                    .accessToken(getString(R.string.MapboxAccessToken))
+                    .placeOptions(placeSelectOptions)
+                    .build(activity)
+                pickLocationLauncher.launch(placeSelectIntent)
+            }
+        }
+
+    val pickHomeLocationLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { activityResult ->
+            if (activityResult.resultCode == Activity.RESULT_OK) {
+                val feature = PlaceAutocomplete.getPlace(activityResult.data)
+                val address = Address(
+                    feature.address() ?: "place",
+                    feature.center()?.longitude() ?: 0.0,
+                    feature.center()?.latitude() ?: 0.0,
+                    feature.placeName() ?: "place",
+                    feature.placeName() ?: "place"
+                )
+                saveHomeAddress(address)
+                favouriteListAdapter.notifyDataSetChanged()
+            } else {
+                // TODO: Handle error
+                Toast.makeText(context, "Handle error for pick home location", Toast.LENGTH_LONG)
+                    .show()
+            }
+        }
 
     val selectLocationLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -111,7 +146,7 @@ class HomeFragment : Fragment() {
             param2 = it.getString(ARG_PARAM2)
         }
 
-        requestPermisLctPickLauncher =
+        requestPermissionLocationPickLauncher =
             requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
                 if (it) {
                     val placePickerOptions = PlacePickerOptions.builder()
@@ -137,7 +172,7 @@ class HomeFragment : Fragment() {
 
             }
 
-        requestPermisLctSelectLauncher =
+        requestPermissionLocationSelectLauncher =
             requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
                 if (it) {
                     val placeSelectOptions = PlaceOptions.builder()
@@ -187,16 +222,19 @@ class HomeFragment : Fragment() {
             drawer
         )
 
-        favouriteListAdapter = FavoriteAdapter(this)
+        favouriteListAdapter = FavoriteAdapter(this, viewModel)
         binding.recyclerviewLayoutId.adapter = favouriteListAdapter
 
 
         viewModel.allAddresses.observe(viewLifecycleOwner, {
-            val emptyAddres = Address("", 0.0, 0.0, "", "")
+            val emptyAddress = Address("", 0.0, 0.0, "", "")
             val changeList = mutableListOf<Address>()
             changeList.addAll(it)
-            changeList.add(0, emptyAddres)
-            changeList.add(0, emptyAddres)
+            // retrieve home location and add it.
+            val homeAddress = getHomeAddress()
+            changeList.add(0, homeAddress)
+            changeList.add(0, emptyAddress)
+            changeList.add(0, emptyAddress)
             favouriteListAdapter.submitList(changeList)
         })
 
@@ -233,6 +271,26 @@ class HomeFragment : Fragment() {
 
         const val REQUEST_CODE_AUTOCOMPLETE = 8267
         const val REQUEST_CODE_PICK_LOCATION = 8654
+        const val HOME_ADDRESS = "home_address"
+    }
+
+    private fun saveHomeAddress(address: Address) {
+        val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putString(HOME_ADDRESS, address.LongName)
+        editor.apply()
+    }
+
+    private fun getHomeAddress(): Address {
+        val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        val longName = sharedPref.getString(HOME_ADDRESS, "home")
+        return Address(
+            longName ?: "",
+            0.0,
+            0.0,
+            longName ?: "",
+            longName ?: ""
+        )
     }
 
 }

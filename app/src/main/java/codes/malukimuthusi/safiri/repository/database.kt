@@ -11,6 +11,9 @@ interface AddressDao {
 
     @Insert()
     suspend fun insertAddress(address: Address)
+
+    @Delete
+    suspend fun deleteAddress(address: Address)
 }
 
 @Database(entities = arrayOf(Address::class), version = 100, exportSchema = false)

@@ -37,4 +37,10 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         get() {
             return db.addressDao().getAllAddresses()
         }
+
+    suspend fun removeItem(place: Address) {
+        withContext(Dispatchers.IO) {
+            db.addressDao().deleteAddress(place)
+        }
+    }
 }
