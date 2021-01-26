@@ -4,7 +4,6 @@ import android.content.pm.PackageManager
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
-import androidx.core.app.ActivityCompat.startActivityForResult
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -94,8 +93,6 @@ class FavoriteViewHolder(private val view: FavouriteListLayoutBinding) :
 
 class FavoriteHeaderViewHolder(private val view: FavouriteHeaderBinding) :
     RecyclerView.ViewHolder(view.root) {
-
-
     fun bind(mainActivity: HomeFragment) {
         val placePickerOptions = PlacePickerOptions.builder()
             .statingCameraPosition(
@@ -111,17 +108,12 @@ class FavoriteHeaderViewHolder(private val view: FavouriteHeaderBinding) :
             .build(mainActivity.requireActivity())
 
         view.addButton.setOnClickListener {
-
             when {
                 ContextCompat.checkSelfPermission(
                     mainActivity.requireActivity(),
                     android.Manifest.permission.READ_PHONE_STATE
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    startActivityForResult(
-                        mainActivity.requireActivity(),
-                        intent,
-                        HomeFragment.REQUEST_CODE_AUTOCOMPLETE, null
-                    )
+                    mainActivity.selectLocationLauncher.launch(intent)
                 }
                 shouldShowRequestPermissionRationale(
                     mainActivity.requireActivity(),
@@ -134,7 +126,7 @@ class FavoriteHeaderViewHolder(private val view: FavouriteHeaderBinding) :
                     ).show()
                 }
                 else -> {
-                    mainActivity.requestPermissionLauncher.launch(android.Manifest.permission.READ_PHONE_STATE)
+                    mainActivity.requestPermisLctPickLauncher.launch(android.Manifest.permission.READ_PHONE_STATE)
                 }
             }
 
