@@ -1,7 +1,6 @@
 package codes.malukimuthusi.safiri
 
 import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -55,7 +53,49 @@ class HomeFragment : Fragment() {
             requireActivity().application
         )
     }
-    lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    lateinit var requestPermisLctPickLauncher: ActivityResultLauncher<String>
+
+    lateinit var requestPermisLctSelectLauncher: ActivityResultLauncher<String>
+
+    val selectLocationLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val carmen = PlacePicker.getPlace(result.data)
+                // save to the database
+                val newAddress = Address(
+                    carmen?.address() ?: "new place",
+                    carmen?.center()?.longitude()?.toDouble() ?: 0.0,
+                    carmen?.center()?.latitude()?.toDouble() ?: 0.0,
+                    carmen?.placeName() ?: "default name",
+                    carmen?.id() ?: "default shortname"
+                )
+                Toast.makeText(context, newAddress.toString(), Toast.LENGTH_LONG).show()
+            }
+
+            if (result.resultCode == Activity.RESULT_CANCELED) {
+                Toast.makeText(context, "Canceled Selecting Location", Toast.LENGTH_LONG).show()
+            }
+        }
+    val pickLocationLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val carmen = PlacePicker.getPlace(result.data)
+                /*save to the database*/
+                val newAddress = Address(
+                    carmen?.address() ?: "new place",
+                    carmen?.center()?.longitude() ?: 0.0,
+                    carmen?.center()?.latitude() ?: 0.0,
+                    carmen?.placeName() ?: "default name",
+                    carmen?.id() ?: "default shortname"
+                )
+                Toast.makeText(context, newAddress.toString(), Toast.LENGTH_LONG).show()
+            }
+
+            if (result.resultCode == Activity.RESULT_CANCELED) {
+                // handle nil result
+                Toast.makeText(context, "Canceled Picking Location", Toast.LENGTH_LONG).show()
+            }
+        }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,26 +105,44 @@ class HomeFragment : Fragment() {
             param2 = it.getString(ARG_PARAM2)
         }
 
-        val placePickerOptions = PlacePickerOptions.builder()
-            .statingCameraPosition(
-                CameraPosition.Builder()
-                    .target(LatLng(-1.2921, 36.8219))
-                    .zoom(16.0)
-                    .build()
-            )
-            .build()
-        val intent = PlacePicker.IntentBuilder()
-            .accessToken(getString(R.string.MapboxAccessToken))
-            .placeOptions(placePickerOptions)
-            .build(requireActivity())
-        requestPermissionLauncher =
+        requestPermisLctPickLauncher =
             requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
                 if (it) {
-                    ActivityCompat.startActivityForResult(
-                        requireActivity(),
-                        intent,
-                        REQUEST_CODE_AUTOCOMPLETE, null
-                    )
+                    val placePickerOptions = PlacePickerOptions.builder()
+                        .statingCameraPosition(
+                            CameraPosition.Builder()
+                                .target(LatLng(-1.2921, 36.8219))
+                                .zoom(16.0)
+                                .build()
+                        )
+                        .build()
+                    val pickPlaceintent = PlacePicker.IntentBuilder()
+                        .accessToken(getString(R.string.MapboxAccessToken))
+                        .placeOptions(placePickerOptions)
+                        .build(requireActivity())
+                    pickLocationLauncher.launch(pickPlaceintent)
+                } else {
+                    Snackbar.make(
+                        binding.root,
+                        "please provide required permissions",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+
+            }
+
+        requestPermisLctSelectLauncher =
+            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+                if (it) {
+                    val placeSelectOptions = PlaceOptions.builder()
+                        .country("KE")
+                        .hint(getString(R.string.where_do_you_want_to_go))
+                        .build(PlaceOptions.MODE_CARDS)
+                    val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
+                        .accessToken(getString(R.string.MapboxAccessToken))
+                        .placeOptions(placeSelectOptions)
+                        .build(activity)
+                    pickLocationLauncher.launch(placeSelectIntent)
                 } else {
                     Snackbar.make(
                         binding.root,
@@ -105,7 +163,6 @@ class HomeFragment : Fragment() {
         binding = FragmentHomeBinding.inflate(inflater, container, false)
         Mapbox.getInstance(requireContext(), getString(R.string.MapboxAccessToken))
 
-
         return binding.root
     }
 
@@ -124,7 +181,6 @@ class HomeFragment : Fragment() {
             drawer
         )
 
-        val act = requireActivity()
         favouriteListAdapter = FavoriteAdapter(this)
         binding.recyclerviewLayoutId.adapter = favouriteListAdapter
 
@@ -147,71 +203,6 @@ class HomeFragment : Fragment() {
                 viewModel.db.addressDao().insertAddress(viewModel.jonathanNgeno)
             }
 
-        }
-    }
-
-
-    private fun chooseLocation() {
-        val placeOptions = PlaceOptions.builder()
-            .country("KE")
-            .hint(getString(R.string.where_do_you_want_to_go))
-            .build(PlaceOptions.MODE_CARDS)
-        val intent = PlaceAutocomplete.IntentBuilder()
-            .accessToken(getString(R.string.MapboxAccessToken))
-            .placeOptions(placeOptions)
-            .build(activity)
-        startActivityForResult(intent, REQUEST_CODE_AUTOCOMPLETE)
-    }
-
-    private fun pickLocation() {
-        val placePickerOptions = PlacePickerOptions.builder()
-            .statingCameraPosition(
-                CameraPosition.Builder()
-                    .target(LatLng(-1.2921, 36.8219))
-                    .zoom(16.0)
-                    .build()
-            )
-            .build()
-        val intent = PlacePicker.IntentBuilder()
-            .accessToken(getString(R.string.MapboxAccessToken))
-            .placeOptions(placePickerOptions)
-            .build(activity)
-        startActivityForResult(intent, REQUEST_CODE_PICK_LOCATION)
-
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        when (requestCode) {
-            REQUEST_CODE_AUTOCOMPLETE -> {
-                if (resultCode == Activity.RESULT_OK) {
-                    val feature = PlaceAutocomplete.getPlace(data)
-                }
-
-                if (resultCode != Activity.RESULT_OK) {
-                    Toast.makeText(context, "Failed to select location", Toast.LENGTH_LONG).show()
-                }
-            }
-            REQUEST_CODE_PICK_LOCATION -> {
-                if (resultCode == Activity.RESULT_OK) {
-                    val feature = PlaceAutocomplete.getPlace(data)
-                    val newAddress = Address(
-                        feature.address() ?: "new place",
-                        feature.center()?.longitude()?.toDouble() ?: 0.0,
-                        feature.center()?.latitude()?.toDouble() ?: 0.0,
-                        feature.placeName() ?: "default name",
-                        feature.id() ?: "default shortname"
-                    )
-
-                    lifecycleScope.launch {
-                        viewModel.addItem(newAddress)
-                    }
-                }
-
-                if (resultCode != Activity.RESULT_OK) {
-                    Toast.makeText(context, "Failed to pick location", Toast.LENGTH_LONG).show()
-                }
-            }
         }
     }
 
