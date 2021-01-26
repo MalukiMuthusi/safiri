@@ -150,33 +150,80 @@ class FavoriteHeaderViewHolder(private val view: FavouriteHeaderBinding) :
 class LocationSelectorViewHolder(private val view: LocationSelectorBinding) :
     RecyclerView.ViewHolder(view.root) {
 
-    fun bind(mainActivity: HomeFragment) {
+    fun bind(homeFragment: HomeFragment) {
         view.chooseLocation.setOnClickListener {
-            val placeOptions = PlaceOptions.builder()
-                .country("KE")
-                .hint(mainActivity.getString(R.string.where_do_you_want_to_go))
-                .build(PlaceOptions.MODE_CARDS)
-            val intent = PlaceAutocomplete.IntentBuilder()
-                .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
-                .placeOptions(placeOptions)
-                .build(mainActivity.requireActivity())
-            mainActivity.startActivityForResult(intent, HomeFragment.REQUEST_CODE_AUTOCOMPLETE)
+
+            when {
+                ContextCompat.checkSelfPermission(
+                    homeFragment.requireActivity(),
+                    android.Manifest.permission.READ_PHONE_STATE
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    val placeSelectOptions = PlaceOptions.builder()
+                        .country("KE")
+                        .hint(homeFragment.getString(R.string.where_do_you_want_to_go))
+                        .build(PlaceOptions.MODE_CARDS)
+                    val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
+                        .accessToken(homeFragment.getString(R.string.MapboxAccessToken))
+                        .placeOptions(placeSelectOptions)
+                        .build(homeFragment.requireActivity())
+                    homeFragment.selectLocationLauncher.launch(placeSelectIntent)
+                }
+
+                shouldShowRequestPermissionRationale(
+                    homeFragment.requireActivity(),
+                    android.Manifest.permission.READ_PHONE_STATE
+                ) -> {
+                    // TODO: Add code to show permission rational dialog
+                    Snackbar.make(
+                        view.root,
+                        "please provide required permissions",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+
+                else -> {
+                    homeFragment.requestPermisLctSelectLauncher.launch(android.Manifest.permission.READ_PHONE_STATE)
+                }
+            }
         }
 
         view.pickLocation.setOnClickListener {
-            val placePickerOptions = PlacePickerOptions.builder()
-                .statingCameraPosition(
-                    CameraPosition.Builder()
-                        .target(LatLng(-1.2921, 36.8219))
-                        .zoom(16.0)
+
+            when {
+                ContextCompat.checkSelfPermission(
+                    homeFragment.requireActivity(),
+                    android.Manifest.permission.READ_PHONE_STATE
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    val placePickerOptions = PlacePickerOptions.builder()
+                        .statingCameraPosition(
+                            CameraPosition.Builder()
+                                .target(LatLng(-1.2921, 36.8219))
+                                .zoom(16.0)
+                                .build()
+                        )
                         .build()
-                )
-                .build()
-            val intent = PlacePicker.IntentBuilder()
-                .accessToken(mainActivity.getString(R.string.MapboxAccessToken))
-                .placeOptions(placePickerOptions)
-                .build(mainActivity.requireActivity())
-            mainActivity.startActivityForResult(intent, HomeFragment.REQUEST_CODE_PICK_LOCATION)
+                    val intent = PlacePicker.IntentBuilder()
+                        .accessToken(homeFragment.getString(R.string.MapboxAccessToken))
+                        .placeOptions(placePickerOptions)
+                        .build(homeFragment.requireActivity())
+                    homeFragment.pickLocationLauncher.launch(intent)
+                }
+
+                shouldShowRequestPermissionRationale(
+                    homeFragment.requireActivity(),
+                    android.Manifest.permission.READ_PHONE_STATE
+                ) -> {
+                    Snackbar.make(
+                        view.root,
+                        "please provide required permissions",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+
+                else -> {
+                    homeFragment.requestPermisLctPickLauncher.launch(android.Manifest.permission.READ_PHONE_STATE)
+                }
+            }
         }
     }
 
