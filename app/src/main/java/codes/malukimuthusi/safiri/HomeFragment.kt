@@ -67,9 +67,12 @@ class HomeFragment : Fragment() {
                     carmen?.center()?.longitude()?.toDouble() ?: 0.0,
                     carmen?.center()?.latitude()?.toDouble() ?: 0.0,
                     carmen?.placeName() ?: "default name",
-                    carmen?.id() ?: "default shortname"
+                    carmen?.placeName() ?: "default shortname"
                 )
-                Toast.makeText(context, newAddress.toString(), Toast.LENGTH_LONG).show()
+
+                lifecycleScope.launch(Dispatchers.IO) {
+                    viewModel.addItem(newAddress)
+                }
             }
 
             if (result.resultCode == Activity.RESULT_CANCELED) {
@@ -86,9 +89,12 @@ class HomeFragment : Fragment() {
                     carmen?.center()?.longitude() ?: 0.0,
                     carmen?.center()?.latitude() ?: 0.0,
                     carmen?.placeName() ?: "default name",
-                    carmen?.id() ?: "default shortname"
+                    carmen?.placeName() ?: "default shortname"
                 )
-                Toast.makeText(context, newAddress.toString(), Toast.LENGTH_LONG).show()
+
+                lifecycleScope.launch(Dispatchers.IO) {
+                    viewModel.addItem(newAddress)
+                }
             }
 
             if (result.resultCode == Activity.RESULT_CANCELED) {
