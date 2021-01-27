@@ -7,7 +7,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
@@ -15,7 +14,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
-import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import codes.malukimuthusi.safiri.databinding.FragmentHomeBinding
 import codes.malukimuthusi.safiri.models.Address
@@ -29,7 +28,6 @@ import com.mapbox.mapboxsdk.plugins.places.picker.PlacePicker
 import com.mapbox.mapboxsdk.plugins.places.picker.model.PlacePickerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -47,28 +45,21 @@ class HomeFragment : Fragment() {
     private var param2: String? = null
     private lateinit var binding: FragmentHomeBinding
     private lateinit var navController: NavController
-    private lateinit var navHostFragment: NavHostFragment
     private lateinit var favouriteListAdapter: FavoriteAdapter
     private val viewModel: HomeViewModel by viewModels {
         ViewModelProvider.AndroidViewModelFactory(
             requireActivity().application
         )
     }
-    lateinit var requestPermissionLocationPickLauncher: ActivityResultLauncher<String>
+    lateinit var editWorkAddressObserver: WorkAddressViewHolder.EditWorkAddressObserver
 
-    lateinit var requestPermissionLocationSelectLauncher: ActivityResultLauncher<String>
     val requestPermissionPickHomeLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { permissionStatus ->
             if (permissionStatus) {
-                val placeSelectOptions = PlaceOptions.builder()
-                    .country("KE")
-                    .hint(getString(R.string.where_do_you_want_to_go))
-                    .build(PlaceOptions.MODE_CARDS)
-                val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
-                    .accessToken(getString(R.string.MapboxAccessToken))
-                    .placeOptions(placeSelectOptions)
-                    .build(activity)
-                pickLocationLauncher.launch(placeSelectIntent)
+                editWorkAddressObserver.pickLocation()
+            } else {
+                // TODO: Handle permission denial
+                Toast.makeText(this.context, "permission denied", Toast.LENGTH_LONG).show()
             }
         }
 
@@ -138,6 +129,56 @@ class HomeFragment : Fragment() {
             }
         }
 
+    val requestPermissionLocationPickLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission())
+        {
+            if (it) {
+                val placePickerOptions = PlacePickerOptions.builder()
+                    .statingCameraPosition(
+                        CameraPosition.Builder()
+                            .target(LatLng(-1.2921, 36.8219))
+                            .zoom(16.0)
+                            .build()
+                    )
+                    .build()
+                val pickPlaceintent = PlacePicker.IntentBuilder()
+                    .accessToken(getString(R.string.MapboxAccessToken))
+                    .placeOptions(placePickerOptions)
+                    .build(requireActivity())
+                pickLocationLauncher.launch(pickPlaceintent)
+            } else {
+                Snackbar.make(
+                    binding.root,
+                    "please provide required permissions",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
+
+        }
+
+    val requestPermissionLocationSelectLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission())
+        {
+            if (it) {
+                val placeSelectOptions = PlaceOptions.builder()
+                    .country("KE")
+                    .hint(getString(R.string.where_do_you_want_to_go))
+                    .build(PlaceOptions.MODE_CARDS)
+                val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
+                    .accessToken(getString(R.string.MapboxAccessToken))
+                    .placeOptions(placeSelectOptions)
+                    .build(activity)
+                pickLocationLauncher.launch(placeSelectIntent)
+            } else {
+                Snackbar.make(
+                    binding.root,
+                    "please provide required permissions",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
+
+        }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -146,54 +187,11 @@ class HomeFragment : Fragment() {
             param2 = it.getString(ARG_PARAM2)
         }
 
-        requestPermissionLocationPickLauncher =
-            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                if (it) {
-                    val placePickerOptions = PlacePickerOptions.builder()
-                        .statingCameraPosition(
-                            CameraPosition.Builder()
-                                .target(LatLng(-1.2921, 36.8219))
-                                .zoom(16.0)
-                                .build()
-                        )
-                        .build()
-                    val pickPlaceintent = PlacePicker.IntentBuilder()
-                        .accessToken(getString(R.string.MapboxAccessToken))
-                        .placeOptions(placePickerOptions)
-                        .build(requireActivity())
-                    pickLocationLauncher.launch(pickPlaceintent)
-                } else {
-                    Snackbar.make(
-                        binding.root,
-                        "please provide required permissions",
-                        Snackbar.LENGTH_LONG
-                    ).show()
-                }
-
-            }
-
-        requestPermissionLocationSelectLauncher =
-            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                if (it) {
-                    val placeSelectOptions = PlaceOptions.builder()
-                        .country("KE")
-                        .hint(getString(R.string.where_do_you_want_to_go))
-                        .build(PlaceOptions.MODE_CARDS)
-                    val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
-                        .accessToken(getString(R.string.MapboxAccessToken))
-                        .placeOptions(placeSelectOptions)
-                        .build(activity)
-                    pickLocationLauncher.launch(placeSelectIntent)
-                } else {
-                    Snackbar.make(
-                        binding.root,
-                        "please provide required permissions",
-                        Snackbar.LENGTH_LONG
-                    ).show()
-                }
-
-            }
-
+        editWorkAddressObserver =
+            WorkAddressViewHolder.EditWorkAddressObserver(
+                requireActivity().activityResultRegistry,
+                this
+            )
     }
 
     override fun onCreateView(
@@ -203,7 +201,6 @@ class HomeFragment : Fragment() {
         // Inflate the layout for this fragment
         binding = FragmentHomeBinding.inflate(inflater, container, false)
         Mapbox.getInstance(requireContext(), getString(R.string.MapboxAccessToken))
-
         return binding.root
     }
 
@@ -212,9 +209,8 @@ class HomeFragment : Fragment() {
         binding.topAppBar.setNavigationOnClickListener {
 
         }
-        navHostFragment =
-            requireActivity().supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        navController = navHostFragment.navController
+
+        navController = view.findNavController()
         val drawer = requireActivity().findViewById<DrawerLayout>(R.id.drawer_layout)
         binding.collapsingToolbarLayout.setupWithNavController(
             binding.topAppBar,
@@ -225,11 +221,21 @@ class HomeFragment : Fragment() {
         favouriteListAdapter = FavoriteAdapter(this, viewModel)
         binding.recyclerviewLayoutId.adapter = favouriteListAdapter
 
+        lifecycle.addObserver(editWorkAddressObserver)
+        viewModel.workAddress.observe(viewLifecycleOwner) {
+            favouriteListAdapter.notifyDataSetChanged()
+        }
+        viewModel.homeAddress.observe(viewLifecycleOwner) {
+            favouriteListAdapter.notifyDataSetChanged()
+        }
 
         viewModel.allAddresses.observe(viewLifecycleOwner, {
             val emptyAddress = Address("", 0.0, 0.0, "", "")
             val changeList = mutableListOf<Address>()
             changeList.addAll(it)
+            // retrieve and add work address
+            val workAddress = getWorkAddress()
+            changeList.add(0, workAddress)
             // retrieve home location and add it.
             val homeAddress = getHomeAddress()
             changeList.add(0, homeAddress)
@@ -238,16 +244,6 @@ class HomeFragment : Fragment() {
             favouriteListAdapter.submitList(changeList)
         })
 
-    }
-
-    private fun addToFavourite() {
-        // get the added class
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                viewModel.db.addressDao().insertAddress(viewModel.jonathanNgeno)
-            }
-
-        }
     }
 
     companion object {
@@ -269,9 +265,8 @@ class HomeFragment : Fragment() {
                 }
             }
 
-        const val REQUEST_CODE_AUTOCOMPLETE = 8267
-        const val REQUEST_CODE_PICK_LOCATION = 8654
         const val HOME_ADDRESS = "home_address"
+        const val WORK_ADDRESS = "work_address"
     }
 
     private fun saveHomeAddress(address: Address) {
@@ -279,11 +274,33 @@ class HomeFragment : Fragment() {
         val editor = sharedPref.edit()
         editor.putString(HOME_ADDRESS, address.LongName)
         editor.apply()
+
+        viewModel.changeHomeAddress()
     }
 
-    private fun getHomeAddress(): Address {
+    fun getHomeAddress(): Address {
         val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
         val longName = sharedPref.getString(HOME_ADDRESS, "home")
+        return Address(
+            longName ?: "",
+            0.0,
+            0.0,
+            longName ?: "",
+            longName ?: ""
+        )
+    }
+
+    fun saveWorkAddress(address: Address) {
+        val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putString(WORK_ADDRESS, address.LongName)
+        editor.apply()
+        viewModel.changeWorkAddress()
+    }
+
+    private fun getWorkAddress(): Address {
+        val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        val longName = sharedPref.getString(WORK_ADDRESS, "work")
         return Address(
             longName ?: "",
             0.0,
