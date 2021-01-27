@@ -29,7 +29,6 @@ import com.mapbox.mapboxsdk.plugins.places.picker.PlacePicker
 import com.mapbox.mapboxsdk.plugins.places.picker.model.PlacePickerOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -54,6 +53,7 @@ class HomeFragment : Fragment() {
             requireActivity().application
         )
     }
+    lateinit var editWorkAddressObserver: WorkAddressViewHolder.EditWorkAddressObserver
     lateinit var requestPermissionLocationPickLauncher: ActivityResultLauncher<String>
 
     lateinit var requestPermissionLocationSelectLauncher: ActivityResultLauncher<String>
@@ -146,6 +146,13 @@ class HomeFragment : Fragment() {
             param2 = it.getString(ARG_PARAM2)
         }
 
+        editWorkAddressObserver =
+            WorkAddressViewHolder.EditWorkAddressObserver(
+                requireActivity().activityResultRegistry,
+                this
+            )
+
+
         requestPermissionLocationPickLauncher =
             requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
                 if (it) {
@@ -225,11 +232,21 @@ class HomeFragment : Fragment() {
         favouriteListAdapter = FavoriteAdapter(this, viewModel)
         binding.recyclerviewLayoutId.adapter = favouriteListAdapter
 
+        lifecycle.addObserver(editWorkAddressObserver)
+        viewModel.workAddress.observe(viewLifecycleOwner) {
+            favouriteListAdapter.notifyDataSetChanged()
+        }
+        viewModel.homeAddress.observe(viewLifecycleOwner) {
+            favouriteListAdapter.notifyDataSetChanged()
+        }
 
         viewModel.allAddresses.observe(viewLifecycleOwner, {
             val emptyAddress = Address("", 0.0, 0.0, "", "")
             val changeList = mutableListOf<Address>()
             changeList.addAll(it)
+            // retrieve and add work address
+            val workAddress = getWorkAddress()
+            changeList.add(0, workAddress)
             // retrieve home location and add it.
             val homeAddress = getHomeAddress()
             changeList.add(0, homeAddress)
@@ -238,16 +255,6 @@ class HomeFragment : Fragment() {
             favouriteListAdapter.submitList(changeList)
         })
 
-    }
-
-    private fun addToFavourite() {
-        // get the added class
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                viewModel.db.addressDao().insertAddress(viewModel.jonathanNgeno)
-            }
-
-        }
     }
 
     companion object {
@@ -269,9 +276,8 @@ class HomeFragment : Fragment() {
                 }
             }
 
-        const val REQUEST_CODE_AUTOCOMPLETE = 8267
-        const val REQUEST_CODE_PICK_LOCATION = 8654
         const val HOME_ADDRESS = "home_address"
+        const val WORK_ADDRESS = "work_address"
     }
 
     private fun saveHomeAddress(address: Address) {
@@ -279,11 +285,33 @@ class HomeFragment : Fragment() {
         val editor = sharedPref.edit()
         editor.putString(HOME_ADDRESS, address.LongName)
         editor.apply()
+
+        viewModel.changeHomeAddress()
     }
 
     private fun getHomeAddress(): Address {
         val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
         val longName = sharedPref.getString(HOME_ADDRESS, "home")
+        return Address(
+            longName ?: "",
+            0.0,
+            0.0,
+            longName ?: "",
+            longName ?: ""
+        )
+    }
+
+    fun saveWorkAddress(address: Address) {
+        val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putString(WORK_ADDRESS, address.LongName)
+        editor.apply()
+        viewModel.changeWorkAddress()
+    }
+
+    private fun getWorkAddress(): Address {
+        val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
+        val longName = sharedPref.getString(WORK_ADDRESS, "work")
         return Address(
             longName ?: "",
             0.0,
