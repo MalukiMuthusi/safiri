@@ -14,7 +14,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
-import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import codes.malukimuthusi.safiri.databinding.FragmentHomeBinding
 import codes.malukimuthusi.safiri.models.Address
@@ -45,7 +45,6 @@ class HomeFragment : Fragment() {
     private var param2: String? = null
     private lateinit var binding: FragmentHomeBinding
     private lateinit var navController: NavController
-    private lateinit var navHostFragment: NavHostFragment
     private lateinit var favouriteListAdapter: FavoriteAdapter
     private val viewModel: HomeViewModel by viewModels {
         ViewModelProvider.AndroidViewModelFactory(
@@ -193,8 +192,6 @@ class HomeFragment : Fragment() {
                 requireActivity().activityResultRegistry,
                 this
             )
-
-
     }
 
     override fun onCreateView(
@@ -204,7 +201,6 @@ class HomeFragment : Fragment() {
         // Inflate the layout for this fragment
         binding = FragmentHomeBinding.inflate(inflater, container, false)
         Mapbox.getInstance(requireContext(), getString(R.string.MapboxAccessToken))
-
         return binding.root
     }
 
@@ -213,9 +209,8 @@ class HomeFragment : Fragment() {
         binding.topAppBar.setNavigationOnClickListener {
 
         }
-        navHostFragment =
-            requireActivity().supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        navController = navHostFragment.navController
+
+        navController = view.findNavController()
         val drawer = requireActivity().findViewById<DrawerLayout>(R.id.drawer_layout)
         binding.collapsingToolbarLayout.setupWithNavController(
             binding.topAppBar,
