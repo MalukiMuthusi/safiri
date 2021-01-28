@@ -402,19 +402,7 @@ class WorkAddressViewHolder(private val binding: WorkAddressBinding) :
                     homeFragment.requireActivity(),
                     android.Manifest.permission.READ_PHONE_STATE
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    val placePickerOptions = PlacePickerOptions.builder()
-                        .statingCameraPosition(
-                            CameraPosition.Builder()
-                                .target(LatLng(-1.2921, 36.8219))
-                                .zoom(16.0)
-                                .build()
-                        )
-                        .build()
-                    val intent = PlacePicker.IntentBuilder()
-                        .accessToken(homeFragment.getString(R.string.MapboxAccessToken))
-                        .placeOptions(placePickerOptions)
-                        .build(homeFragment.requireActivity())
-                    homeFragment.pickHomeLocationLauncher.launch(intent)
+                    editWorkAddress(homeFragment)
                 }
 
                 shouldShowRequestPermissionRationale(
@@ -507,6 +495,7 @@ class WorkAddressViewHolder(private val binding: WorkAddressBinding) :
             return Address("default", 0.0, 0.0, "default name", "default")
         }
     }
+
 
     class EditWorkAddressObserver(
         private val registry: ActivityResultRegistry,

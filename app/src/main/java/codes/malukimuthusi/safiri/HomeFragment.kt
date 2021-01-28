@@ -7,7 +7,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
@@ -54,21 +53,14 @@ class HomeFragment : Fragment() {
         )
     }
     lateinit var editWorkAddressObserver: WorkAddressViewHolder.EditWorkAddressObserver
-    lateinit var requestPermissionLocationPickLauncher: ActivityResultLauncher<String>
 
-    lateinit var requestPermissionLocationSelectLauncher: ActivityResultLauncher<String>
     val requestPermissionPickHomeLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { permissionStatus ->
             if (permissionStatus) {
-                val placeSelectOptions = PlaceOptions.builder()
-                    .country("KE")
-                    .hint(getString(R.string.where_do_you_want_to_go))
-                    .build(PlaceOptions.MODE_CARDS)
-                val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
-                    .accessToken(getString(R.string.MapboxAccessToken))
-                    .placeOptions(placeSelectOptions)
-                    .build(activity)
-                pickLocationLauncher.launch(placeSelectIntent)
+                editWorkAddressObserver.pickLocation()
+            } else {
+                // TODO: Handle permission denial
+                Toast.makeText(this.context, "permission denied", Toast.LENGTH_LONG).show()
             }
         }
 
@@ -138,6 +130,56 @@ class HomeFragment : Fragment() {
             }
         }
 
+    val requestPermissionLocationPickLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission())
+        {
+            if (it) {
+                val placePickerOptions = PlacePickerOptions.builder()
+                    .statingCameraPosition(
+                        CameraPosition.Builder()
+                            .target(LatLng(-1.2921, 36.8219))
+                            .zoom(16.0)
+                            .build()
+                    )
+                    .build()
+                val pickPlaceintent = PlacePicker.IntentBuilder()
+                    .accessToken(getString(R.string.MapboxAccessToken))
+                    .placeOptions(placePickerOptions)
+                    .build(requireActivity())
+                pickLocationLauncher.launch(pickPlaceintent)
+            } else {
+                Snackbar.make(
+                    binding.root,
+                    "please provide required permissions",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
+
+        }
+
+    val requestPermissionLocationSelectLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission())
+        {
+            if (it) {
+                val placeSelectOptions = PlaceOptions.builder()
+                    .country("KE")
+                    .hint(getString(R.string.where_do_you_want_to_go))
+                    .build(PlaceOptions.MODE_CARDS)
+                val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
+                    .accessToken(getString(R.string.MapboxAccessToken))
+                    .placeOptions(placeSelectOptions)
+                    .build(activity)
+                pickLocationLauncher.launch(placeSelectIntent)
+            } else {
+                Snackbar.make(
+                    binding.root,
+                    "please provide required permissions",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
+
+        }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -152,54 +194,6 @@ class HomeFragment : Fragment() {
                 this
             )
 
-
-        requestPermissionLocationPickLauncher =
-            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                if (it) {
-                    val placePickerOptions = PlacePickerOptions.builder()
-                        .statingCameraPosition(
-                            CameraPosition.Builder()
-                                .target(LatLng(-1.2921, 36.8219))
-                                .zoom(16.0)
-                                .build()
-                        )
-                        .build()
-                    val pickPlaceintent = PlacePicker.IntentBuilder()
-                        .accessToken(getString(R.string.MapboxAccessToken))
-                        .placeOptions(placePickerOptions)
-                        .build(requireActivity())
-                    pickLocationLauncher.launch(pickPlaceintent)
-                } else {
-                    Snackbar.make(
-                        binding.root,
-                        "please provide required permissions",
-                        Snackbar.LENGTH_LONG
-                    ).show()
-                }
-
-            }
-
-        requestPermissionLocationSelectLauncher =
-            requireActivity().registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                if (it) {
-                    val placeSelectOptions = PlaceOptions.builder()
-                        .country("KE")
-                        .hint(getString(R.string.where_do_you_want_to_go))
-                        .build(PlaceOptions.MODE_CARDS)
-                    val placeSelectIntent = PlaceAutocomplete.IntentBuilder()
-                        .accessToken(getString(R.string.MapboxAccessToken))
-                        .placeOptions(placeSelectOptions)
-                        .build(activity)
-                    pickLocationLauncher.launch(placeSelectIntent)
-                } else {
-                    Snackbar.make(
-                        binding.root,
-                        "please provide required permissions",
-                        Snackbar.LENGTH_LONG
-                    ).show()
-                }
-
-            }
 
     }
 
@@ -289,7 +283,7 @@ class HomeFragment : Fragment() {
         viewModel.changeHomeAddress()
     }
 
-    private fun getHomeAddress(): Address {
+    fun getHomeAddress(): Address {
         val sharedPref = requireActivity().getPreferences(Context.MODE_PRIVATE)
         val longName = sharedPref.getString(HOME_ADDRESS, "home")
         return Address(
