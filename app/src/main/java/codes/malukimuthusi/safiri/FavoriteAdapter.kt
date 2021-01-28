@@ -1,20 +1,26 @@
 package codes.malukimuthusi.safiri
 
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.launch
 import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import codes.malukimuthusi.safiri.databinding.FavouriteHeaderBinding
-import codes.malukimuthusi.safiri.databinding.FavouriteListSingleLayoutBinding
-import codes.malukimuthusi.safiri.databinding.HomeFavouriteBinding
-import codes.malukimuthusi.safiri.databinding.LocationSelectorBinding
+import codes.malukimuthusi.safiri.databinding.*
 import codes.malukimuthusi.safiri.models.Address
 import com.google.android.material.snackbar.Snackbar
 import com.mapbox.mapboxsdk.camera.CameraPosition
@@ -34,9 +40,10 @@ class FavoriteAdapter(
     ListAdapter<Address, RecyclerView.ViewHolder>(FavoriteDIFF) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
-            1 -> LocationSelectorViewHolder.init(parent)
-            2 -> FavoriteHeaderViewHolder.init(parent)
-            3 -> HomeFavoriteViewHolder.init(parent)
+            0 -> LocationSelectorViewHolder.init(parent)
+            1 -> FavoriteHeaderViewHolder.init(parent)
+            2 -> HomeFavoriteViewHolder.init(parent)
+            3 -> WorkAddressViewHolder.init(parent)
             else -> FavoriteViewHolder.init(parent)
         }
     }
@@ -44,18 +51,22 @@ class FavoriteAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
 
         when (getItemViewType(position)) {
-            1 -> {
+            0 -> {
                 // select location layout
                 holder as LocationSelectorViewHolder
                 holder.bind(homeFragment)
             }
-            2 -> {
+            1 -> {
                 // favourite list header
                 holder as FavoriteHeaderViewHolder
                 holder.bind(homeFragment)
             }
-            3 -> {
+            2 -> {
                 holder as HomeFavoriteViewHolder
+                holder.bind(getItem(position), homeFragment, viewModel)
+            }
+            3 -> {
+                holder as WorkAddressViewHolder
                 holder.bind(getItem(position), homeFragment, viewModel)
             }
             else -> {
@@ -68,10 +79,11 @@ class FavoriteAdapter(
 
     override fun getItemViewType(position: Int): Int {
         return when (position) {
-            0 -> 1
-            1 -> 2
-            2 -> 3
-            else -> super.getItemViewType(position)
+            0 -> 0
+            1 -> 1
+            2 -> 2
+            3 -> 3
+            else -> 4
         }
 
     }
@@ -89,6 +101,7 @@ object FavoriteDIFF : DiffUtil.ItemCallback<Address>() {
 
 class FavoriteViewHolder(private val binding: FavouriteListSingleLayoutBinding) :
     RecyclerView.ViewHolder(binding.root) {
+
     fun bind(favoriteItem: Address, homeFragment: HomeFragment, viewModel: HomeViewModel) {
         binding.address.text = favoriteItem.LongName
 
@@ -376,6 +389,144 @@ class HomeFavoriteViewHolder(private val view: HomeFavouriteBinding) :
         }
     }
 }
+
+// work viewHolder
+class WorkAddressViewHolder(private val binding: WorkAddressBinding) :
+    RecyclerView.ViewHolder(binding.root) {
+
+    fun bind(favoriteItem: Address, homeFragment: HomeFragment, viewModel: HomeViewModel) {
+        binding.address.text = favoriteItem.LongName
+        binding.placeName.setOnClickListener {
+            when {
+                ContextCompat.checkSelfPermission(
+                    homeFragment.requireActivity(),
+                    android.Manifest.permission.READ_PHONE_STATE
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    editWorkAddress(homeFragment)
+                }
+
+                shouldShowRequestPermissionRationale(
+                    homeFragment.requireActivity(),
+                    android.Manifest.permission.READ_PHONE_STATE
+                ) -> {
+                    Snackbar.make(
+                        binding.root,
+                        "please provide required permissions",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+
+                else -> {
+                    homeFragment.requestPermissionPickHomeLauncher.launch(android.Manifest.permission.READ_PHONE_STATE)
+                }
+            }
+        }
+
+        binding.more.setOnClickListener { moreImageView ->
+            val popMenu = PopupMenu(moreImageView.context, moreImageView)
+            popMenu.menuInflater.inflate(R.menu.home_more_menu, popMenu.menu)
+
+            popMenu.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.title) {
+                    moreImageView.context.getString(R.string.home_reset) -> {
+                        val workAddress = Address("Work Address", 0.0, 0.0, "Tap to Add", "work")
+                        binding.address.text = workAddress.LongName
+                        homeFragment.saveWorkAddress(workAddress)
+                        true
+                    }
+                    else -> {
+                        editWorkAddress(homeFragment)
+                        true
+                    }
+                }
+            }
+
+            popMenu.setOnDismissListener {
+                // TODO: handle menu dismiss
+
+            }
+            popMenu.show()
+
+        }
+    }
+
+    private fun editWorkAddress(homeFragment: HomeFragment) {
+        homeFragment.editWorkAddressObserver.pickLocation()
+    }
+
+    companion object {
+        fun init(parent: ViewGroup): WorkAddressViewHolder {
+            val binding =
+                WorkAddressBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return WorkAddressViewHolder(binding)
+        }
+    }
+
+    class PickLocationResultContract(private val homeFragment: HomeFragment) :
+        ActivityResultContract<Unit, Address>() {
+        override fun createIntent(context: Context, input: Unit?): Intent {
+            val placePickerOptions = PlacePickerOptions.builder()
+                .statingCameraPosition(
+                    CameraPosition.Builder()
+                        .target(LatLng(-1.2921, 36.8219))
+                        .zoom(16.0)
+                        .build()
+                )
+                .build()
+            val intent = PlacePicker.IntentBuilder()
+                .accessToken(context.getString(R.string.MapboxAccessToken))
+                .placeOptions(placePickerOptions)
+                .build(homeFragment.requireActivity())
+
+            return intent
+        }
+
+        override fun parseResult(resultCode: Int, intent: Intent?): Address {
+            if (resultCode == Activity.RESULT_OK) {
+                val feature = PlaceAutocomplete.getPlace(intent)
+                return Address(
+                    feature.address() ?: "place",
+                    feature.center()?.longitude() ?: 0.0,
+                    feature.center()?.latitude() ?: 0.0,
+                    feature.placeName() ?: "place",
+                    feature.placeName() ?: "place"
+                )
+            }
+            return Address("default", 0.0, 0.0, "default name", "default")
+        }
+    }
+
+
+    class EditWorkAddressObserver(
+        private val registry: ActivityResultRegistry,
+        private val homeFragment: HomeFragment,
+    ) :
+        DefaultLifecycleObserver {
+        lateinit var getAddress: ActivityResultLauncher<Unit>
+        override fun onCreate(owner: LifecycleOwner) {
+            super.onCreate(owner)
+            getAddress =
+                registry.register(
+                    "codes.malukimuthusi.safiri.editWorkAddress",
+                    owner,
+                    PickLocationResultContract(homeFragment)
+                ) { address ->
+                    homeFragment.saveWorkAddress(address)
+                    // TODO: Update UI
+                    Toast.makeText(homeFragment.context, "Edited Work address", Toast.LENGTH_LONG)
+                        .show()
+                }
+        }
+
+        fun pickLocation() {
+            getAddress.launch()
+        }
+    }
+
+}
+
+
+
 
 
 

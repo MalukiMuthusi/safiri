@@ -3,6 +3,7 @@ package codes.malukimuthusi.safiri
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.room.Room
 import codes.malukimuthusi.safiri.models.Address
 import codes.malukimuthusi.safiri.repository.AppDatabase
@@ -24,15 +25,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     }
 
-    val jonathanNgeno = Address(
-        "Lake Side view",
-        -1.3212413399260465,
-        36.79315252818723,
-        "Jonathan Ng'eno Estate",
-        "D100"
-    )
-
-
     val allAddresses: LiveData<List<Address>>
         get() {
             return db.addressDao().getAllAddresses()
@@ -43,4 +35,26 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             db.addressDao().deleteAddress(place)
         }
     }
+
+    /* Check work Address change */
+    private var workCounter = 0
+    private val _workAddress = MutableLiveData<Int>()
+    val workAddress: LiveData<Int>
+        get() = _workAddress
+
+    fun changeWorkAddress() {
+        workCounter += 1
+        _workAddress.value = workCounter
+    }
+
+    /* check home address change */
+    private var homeCounter = 0
+    private val _homeAddress = MutableLiveData<Int>()
+    fun changeHomeAddress() {
+        homeCounter += homeCounter
+        _homeAddress.value = _homeAddress.value
+    }
+
+    val homeAddress: LiveData<Int>
+        get() = _homeAddress
 }
